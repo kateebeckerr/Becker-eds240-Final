@@ -1,0 +1,255 @@
+---
+title: "Homework Assignment #3"
+subtitle: "Data Viz"
+author: "Kate Becker"
+date: 2024-02-27
+toc: true
+format: 
+  html:
+    embed-resources: true
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+### Option 1
+
+# How have Salmon fisheries in Alaska changed since 1985 in terms of yield and regulations?
+
+Variables:
+
+-   Year: time range from 1985 to 2023
+
+-   Area : Alaska fishing region
+
+-   Species name : salmon species name
+
+-   Number of fish estimated : catch numbers of salmon
+
+-   Permit count : how many permits were distirbuted
+
+-   Vessel count: how many vessels were used that year
+
+## Import Required Libraries
+
+```{r}
+library(tidyverse)
+library(streamgraph)
+library(viridis)
+library(hrbrthemes)
+library(plotly)
+library(ggalt)
+library(jpeg) 
+library(ggplot2) 
+library(patchwork) 
+library(dplyr)
+library(ggimage)
+library(ggpubr)
+library(jpeg)
+library(stringr)
+library(prismatic)
+library(Cairo)
+library(scales)
+library(extrafont)
+library(hrbrthemes)
+library(GGally)
+library(viridis)
+
+```
+
+## Hand - Drawn Plot
+
+```{r, eval: true, echo: false, fig-align: "center", out-width: "100%", fig-alt: "Alt text here"}
+
+knitr::include_graphics("/Users/katebecker/Documents/Bren/Winter/240/final/Becker-eds240-HW4/drafts.jpeg")
+```
+
+## Data Read in
+
+```{r}
+alaska <- read_csv("data/Alaska-Statewide.csv")
+
+alaska <- alaska %>% 
+  janitor::clean_names() #cleans column names for easier wrangling
+```
+
+## Salmon Image Import
+
+```{r}
+# saving images downlaoded from the internet as jpegs in this repo
+chinook <- "/Users/katebecker/Documents/Bren/Winter/240/final/eds240-visualizations/images/kspencer_chinook.jpg"
+coho <- "/Users/katebecker/Documents/Bren/Winter/240/final/eds240-visualizations/images/kspencer_coho.jpg"
+sockeye <-"/Users/katebecker/Documents/Bren/Winter/240/final/eds240-visualizations/images/sockeye-salmon.jpg"
+pink <- "/Users/katebecker/Documents/Bren/Winter/240/final/eds240-visualizations/images/kspencer_pink.jpg"
+chum <- "/Users/katebecker/Documents/Bren/Winter/240/final/eds240-visualizations/images/kspencer_chum.jpg"
+
+# reading in images 
+chinook_img <- readJPEG(chinook, native = TRUE) 
+chum_img <-readJPEG(chum, native = TRUE)
+sockeye_img <-readJPEG(sockeye, native = TRUE)
+coho_img <-readJPEG(coho, native = TRUE)
+pink_img <-readJPEG(pink, native = TRUE)
+
+```
+
+## Visualization #1
+
+```{r}
+salmon1985 <- alaska |> 
+  filter(year == 1985) |> 
+  ggplot(aes(x = fct_reorder(species_name, number_of_fish_estimated), y = number_of_fish_estimated, fill = species_name)) +
+  geom_col() +
+  scale_fill_manual(values = c("#C66264", "#FD7C6E", "#FF7799", "#EC8E5E", "#F67280")) +
+  scale_y_continuous(labels = scales::comma, limits = c(0,60000000)) + 
+  scale_x_discrete(limits = c("Sockeye Salmon", "Pink Salmon", "Chum Salmon", "Coho Salmon", "Chinook Salmon")) +
+  coord_flip() +
+  theme_bw()+
+  theme(legend.position = "none") +
+  labs(x = "",
+       y = "Catch",
+       title = "Salmon Catch in 1985") +
+  geom_image(y = 58000000, aes(image = chinook), size = 0.2)
+
+salmon1985
+```
+
+```{r}
+Salmon2023 <- alaska |> 
+  filter(year == 2023) |> 
+  ggplot(aes(x = fct_reorder(species_name, number_of_fish_estimated), y = number_of_fish_estimated, fill = species_name)) +
+  geom_col() +
+  scale_fill_manual(values = c("#C66264", "#FD7C6E", "#FF7799", "#EC8E5E", "#F67280")) +
+  scale_y_continuous(labels = scales::comma, limits = c(0,60000000)) + 
+  scale_x_discrete(limits = c("Sockeye Salmon", "Pink Salmon", "Chum Salmon", "Coho Salmon", "Chinook Salmon")) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = "",
+       y = "Catch",
+       title = "Salmon Catch in 2023") +
+  geom_image(y = 58000000, aes(image = chinook), size = 0.2)
+
+Salmon2023
+```
+
+## Final Visualization
+
+```{r}
+gridExtra::grid.arrange(salmon1985, Salmon2023,ncol=1)
+
+```
+
+# Visualization #2
+
+### Data Wrangling
+
+```{r}
+
+alaska$area <- as.factor(alaska$area)
+
+summary_stats <- alaska %>%
+  group_by(area) %>%
+  na.omit() %>%
+  summarise(mean_fish = mean(number_of_fish_estimated),
+            sum_fish = sum(number_of_fish_estimated)) %>%
+  mutate(mean_fish= round(mean_fish, digits = 0))
+
+Nrs <- alaska %>%
+  group_by(area) %>%
+  count()
+
+summary_all <- left_join(summary_stats, Nrs, by = "area")
+```
+
+## Final Visualization
+
+```{r}
+
+#color choice
+prismatic::color(c( "#6C5B7B" ,"#C06C84","#B85265", "#C66264", "#FD7C6E", "#FF7F50", "#FF7799", "#EC8E5E", "#FF91A4",
+                                    "#F67280","#F8B195"))
+
+#ggplot2
+ggplot(summary_all) +
+  
+  #make custom panel grid
+  geom_hline(yintercept = 0, color = "lightgrey") +
+  geom_hline(yintercept = 2000000, color = "lightgrey") +
+  geom_hline(yintercept = 40000000, color = "lightgrey") +
+  geom_hline(yintercept = 60000000, color = "lightgrey") +
+  geom_hline(yintercept = 80000000, color = "lightgrey") +
+  
+  geom_col(aes(
+    x = reorder(str_wrap(area,11),sum_fish), #is numeric
+    y = sum_fish,#is numeric
+    fill = sum_fish), #is a factor
+    position = "dodge2",
+    show.legend = TRUE,
+    alpha = .9) +
+      
+      #new fill and legend title for number of tracks per region
+  scale_fill_gradientn("Fish Sum",
+                       colours = c( "#6C5B7B","#C06C84", "#B85265", "#C66264", "#FD7C6E")) +
+  
+  #mean gain per region
+  geom_point(aes(x = reorder(str_wrap(area,11),sum_fish),
+                 y = mean_fish),
+             size = 3,
+             color = "gray12") +
+  
+  #lollipop shaft for mean gain per region
+  geom_segment(aes(
+    x = reorder(str_wrap(area,11),mean_fish),
+    y = 0,
+    xend = reorder(str_wrap(area,11),mean_fish),
+    yend = 20000000),
+    linetype = "dashed",
+    color = "gray12") +
+  
+  labs(x = "Salmon Catches by Region",
+       y = "Estimated Catch") +
+  
+  coord_polar() +
+  theme_bw()
+```
+
+# Visualization #3
+
+```{r}
+
+alaska %>%
+  group_by(area)
+
+ggparcoord(alaska,
+    columns = c(1,4,7,9),
+    groupColumn = 2,
+    alphaLines = 0.2,
+    ) +
+  theme(axis.text = element_text(size = 7)) +
+  labs(title = "Parallel Coordinate Plot for Salmon Fisheries in Alaska") 
+```
+
+## 2 potential visualziations I would like to explore:
+
+-   https://www.usgs.gov/apps/ecosheds/pitdata/
+
+-   https://www.flickr.com/photos/kushwahasantosh/5925487529
+
+## Written Responses:
+
+-   What challenges did you encounter or anticipate encountering as you continue to build / iterate on your visualizations in R?
+
+One of the main challenges I observed is the problems that accompany untidy data. The cleaning and wrangling that different graphs require are unique to each one and it can be difficult to complete that prior to starting graph creation. I also found it difficult to find datasets online that can be bound with others. Data frames are all constructed differently making it difficult to aggregate.
+
+-   What ggplot extension tools / packages do you need to use to build your visualizations? Are there any that we haven't covered in class that you'll be learning how to use for your visualizations?
+
+There were quite a few packages I needed to build my visualizations such as streamgraphs, hrbrthemes, ggalt, jpeg, ggimage, ggpubr, stringr, prismatic, cairo, scales, and ggally, just to name a few.
+
+-   What feedback do you need from the instructional team and / or your peers to ensure that your intended message is clear?
+
+I think the most productive feedback would be whether or not my visualizations are enough to answer my research questions. I found that during this process I was more so looking for patterns and relationships rather than thinking about the communication of these visualizations to the public. I would also like aesthetic feedback!
+
+Parallel coordinate plot: studies features of samples for sevearl qunatitative variables, each variable is given an axis and all axes are placed parallet to each other - rather than whole sample pull out jsut four - facet wrap by region - adding time scale - changing year - adding detail regarding what is value , in legend change charactersitics - change legend size and colros of point - should specify value! - scale size manual! over rides - scaling!
