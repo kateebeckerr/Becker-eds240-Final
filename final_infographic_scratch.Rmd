@@ -253,12 +253,12 @@ ggplot(summary_all_85) +
 library(usmap) 
 
 
-alaska <- plot_usmap(include = c("AK")) +
+alaska_map <- plot_usmap(include = c("AK")) +
       labs(title = "Western States") 
 
-alaska
+alaska_map
 
-class(alaska)
+class(alaska_map)
 
 
 #alaska_2 <- sf::st_transform(alaska, 3857)
